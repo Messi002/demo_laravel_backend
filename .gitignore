@@ -19,3 +19,7 @@ yarn-error.log
 /.idea
 /.vscode
 /.zed
+node_modules
+.env
+storage/*
+vendor/*
