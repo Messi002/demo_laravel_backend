@@ -3,11 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Transfer;
-use Kreait\Firebase\Factory;
 use Kreait\Firebase\Exception\FirebaseException;
-
-
 
 class TransferController extends Controller
 {
@@ -18,6 +14,7 @@ class TransferController extends Controller
         $this->firestore = app('firestore');
     }
 
+    
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -31,29 +28,65 @@ class TransferController extends Controller
             'transaction_date' => 'required|date',
         ]);
 
-        $transferRef = $this->firestore->collection('transfers')->newDocument();
-        $transferRef->set($validated);
+        try {
+            $transferRef = $this->firestore->collection('transfers')->newDocument();
+            $transferRef->set($validated);
 
-        return response()->json(['message' => 'Transfer created successfully.'], 201);
+            $responseData = $validated;
+            $responseData['id'] = $transferRef->id();
+
+            return response()->json([
+                'isSuccess' => true,
+                'statusCode' => 201,
+                'message' => 'Transfer created successfully.',
+                'responseJson' => $responseData,
+            ], 201);
+
+        } catch (FirebaseException $e) {
+            // Error response
+            return response()->json([
+                'isSuccess' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+                'responseJson' => new \stdClass() 
+            ], 500);
+        }
     }
 
-
+   
     public function index()
     {
         try {
             $transfers = $this->firestore->collection('transfers')->documents();
 
-            $transferData = [];
+            $transferList = [];
+
             foreach ($transfers as $transfer) {
                 if ($transfer->exists()) {
-                    $transferData[] = $transfer->data();
+                    $transferData = $transfer->data();
+                    $transferData['id'] = $transfer->id();
+                    $transferList[] = $transferData;
                 }
             }
 
-            return response()->json($transferData, 200);
+            // Successful response
+            return response()->json([
+                'isSuccess' => true,
+                'statusCode' => 200,
+                'message' => 'Transfers fetched successfully.',
+                'responseJson' => [
+                    'transfers' => $transferList,
+                ],
+            ], 200);
+
         } catch (FirebaseException $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            // Error response
+            return response()->json([
+                'isSuccess' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+                'responseJson' => new \stdClass() 
+            ], 500);
         }
     }
-    
 }

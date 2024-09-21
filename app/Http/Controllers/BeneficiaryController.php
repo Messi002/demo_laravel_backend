@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Kreait\Firebase\Factory;
 use Illuminate\Http\Request;
 
@@ -12,40 +13,47 @@ class BeneficiaryController extends Controller
     {
         $this->firestore = app('firestore');
     }
+
     public function index(Request $request)
     {
-        $pageSize = $request->input('pageSize', 10); 
-        $lastDocumentId = $request->input('lastDocumentId'); 
-    
+        $pageSize = $request->input('pageSize', 10);
+        $lastDocumentId = $request->input('lastDocumentId');
+
         $collection = $this->firestore->collection('beneficiaries');
-        
+
         if ($lastDocumentId) {
             $lastDocument = $collection->document($lastDocumentId)->snapshot();
             $query = $collection->orderBy('name')->startAfter($lastDocument)->limit($pageSize);
         } else {
             $query = $collection->orderBy('name')->limit($pageSize);
         }
-    
+
         $beneficiaries = $query->documents();
         $beneficiaryList = [];
-    
+
         foreach ($beneficiaries as $beneficiary) {
             if ($beneficiary->exists()) {
-                $beneficiaryList[] = $beneficiary->data();
+                $beneficiaryData = $beneficiary->data();
+                $beneficiaryData['id'] = $beneficiary->id();
+                $beneficiaryList[] = $beneficiaryData;
             }
         }
-    
+
         $rows = $beneficiaries->rows();
-        $lastDocument = end($rows);  
+        $lastDocument = end($rows);
         $nextDocumentId = $lastDocument ? $lastDocument->id() : null;
-    
+
+        // Successful response
         return response()->json([
-            'beneficiaries' => $beneficiaryList,
-            'nextDocumentId' => $nextDocumentId, 
+            'isSuccess' => true,
+            'statusCode' => 200,
+            'message' => 'Beneficiary list fetched successfully.',
+            'responseJson' => [
+                'beneficiaries' => $beneficiaryList,
+                'nextDocumentId' => $nextDocumentId
+            ],
         ], 200);
     }
-    
-    
 
     public function update(Request $request, $id)
     {
@@ -56,24 +64,54 @@ class BeneficiaryController extends Controller
         ]);
 
         $docRef = $this->firestore->collection('beneficiaries')->document($id);
-
         $docSnapshot = $docRef->snapshot();
 
         if (!$docSnapshot->exists()) {
-            return response()->json(['error' => 'Beneficiary not found.'], 404);
+            // Error response
+            return response()->json([
+                'isSuccess' => false,
+                'statusCode' => 404,
+                'message' => 'Beneficiary not found.',
+                'responseJson' => new \stdClass() 
+            ], 404);
         }
 
         $docRef->set($validated, ['merge' => true]);
 
-        return response()->json(['message' => 'Beneficiary updated successfully.']);
+        // Successful response
+        return response()->json([
+            'isSuccess' => true,
+            'statusCode' => 200,
+            'message' => 'Beneficiary updated successfully.',
+            'responseJson' => new \stdClass() 
+        ], 200);
     }
 
     public function destroy($id)
     {
-        $this->firestore->collection('beneficiaries')->document($id)->delete();
+        $docRef = $this->firestore->collection('beneficiaries')->document($id);
+        $docSnapshot = $docRef->snapshot();
 
-        return response()->json(['message' => 'Beneficiary deleted successfully.'],204);
+        if (!$docSnapshot->exists()) {
+            // Error response
+            return response()->json([
+                'isSuccess' => false,
+                'statusCode' => 404,
+                'message' => 'Beneficiary not found.',
+                'responseJson' => new \stdClass() 
+            ], 404);
+        }
+
+        $docRef->delete();
+
+        // Successful response
+        return response()->json([
+            'isSuccess' => true,
+            'statusCode' => 204,
+            'message' => 'Beneficiary deleted successfully.',
+            'responseJson' => [
+                'deleted' => [],
+            ]
+        ], 204);
     }
 }
-
-

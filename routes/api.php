@@ -22,6 +22,3 @@ Route::put('/beneficiaries/{id}', [BeneficiaryController::class, 'update']);
 
 Route::get('/debit-accounts', [DebitAccountController::class, 'index']);
 
-
-// /api/beneficiaries?pageSize=10
-// /api/beneficiaries?pageSize=10&lastDocumentId=LAST_DOCUMENT_ID

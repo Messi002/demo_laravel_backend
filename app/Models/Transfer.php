@@ -14,7 +14,7 @@ class Transfer extends Model
         'amount',
         'description',
         'is_anonymous',
-        'transaction_date', 
+        // 'transaction_date', 
 
 
     ];

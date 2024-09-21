@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Kreait\Firebase\Exception\FirebaseException;
 
 class DebitAccountController extends Controller
 {
@@ -13,18 +14,38 @@ class DebitAccountController extends Controller
         $this->firestore = app('firestore');
     }
 
-
     public function index()
     {
-        $accounts = $this->firestore->collection('debit_accounts')->documents();
-        $accountList = [];
+        try {
+            $accounts = $this->firestore->collection('debit_accounts')->documents();
+            $accountList = [];
 
-        foreach ($accounts as $account) {
-            if ($account->exists()) {
-                $accountList[] = $account->data(); 
+            foreach ($accounts as $account) {
+                if ($account->exists()) {
+                    $accountData = $account->data();
+                    $accountData['id'] = $account->id();
+                    $accountList[] = $accountData;
+                }
             }
-        }
 
-        return response()->json($accountList); 
+            // Successful response
+            return response()->json([
+                'isSuccess' => true,
+                'statusCode' => 200,
+                'message' => 'Debit accounts fetched successfully.',
+                'responseJson' => [
+                    'debitAccounts' => $accountList,
+                ],
+            ], 200);
+
+        } catch (FirebaseException $e) {
+            // Error response
+            return response()->json([
+                'isSuccess' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+                'responseJson' => new \stdClass() 
+            ], 500);
+        }
     }
 }
