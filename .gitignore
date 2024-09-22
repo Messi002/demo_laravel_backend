@@ -21,6 +21,4 @@ yarn-error.log
 /.zed
 node_modules
 .env
-storage/*
-vendor/*
 .vercel
